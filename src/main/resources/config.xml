@@ -7,4 +7,6 @@
     <afkTimeToMove>3000</afkTimeToMove>
     <safeGroups>1,2,3,4</safeGroups>
     <virtualServerId>1</virtualServerId>
+    <botCheckDelay>10000</botCheckDelay>
+    <afkChannelId>8</afkChannelId>
 </configuration>
