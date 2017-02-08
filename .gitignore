@@ -29,6 +29,9 @@
 # IntelliJ
 /out/
 
+# Built Code
+/target/
+
 # mpeltonen/sbt-idea plugin
 .idea_modules/
 
