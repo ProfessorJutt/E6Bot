@@ -6,6 +6,7 @@ import java.util.List;
 
 public class Configuration {
 
+
     private String serverAddress = "127.0.0.1";
     private String botNickname = "SwagMonster";
     private String username = "TestAdmin";
@@ -72,5 +73,10 @@ public class Configuration {
         }
 
 
+    }
+    //convert to miliseconds
+    public int convertToMil(int minutes){
+        int miliSeconds = minutes * 60 * 1000;
+        return miliSeconds;
     }
 }
