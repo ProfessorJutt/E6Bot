@@ -57,8 +57,8 @@ public class Configuration {
             afkChannelId = config.getInt("afkChannelId");
             virtualServerId = config.getInt("virtualServerId");
             botNickname = config.getString("botNickname");
-            afkTimeToMove = config.getLong("afkTimeToMove");
-            botCheckDelay = config.getLong("botCheckDelay");
+            afkTimeToMove = convertToMil(config.getLong("afkTimeToMove"));
+            botCheckDelay = convertToMil(config.getLong("botCheckDelay"));
 
             List<String> safeGroupList = config.getList("safeGroups");
             safeGroups = new int[safeGroupList.size()];
@@ -74,9 +74,9 @@ public class Configuration {
 
 
     }
-    //convert to miliseconds
-    public int convertToMil(int minutes){
-        int miliSeconds = minutes * 60 * 1000;
-        return miliSeconds;
+    //convert to milliseconds
+    private long convertToMil(long minutes){
+        return minutes * 60 * 1000;
+
     }
 }
