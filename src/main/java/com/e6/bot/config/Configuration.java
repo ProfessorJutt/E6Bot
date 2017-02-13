@@ -1,7 +1,7 @@
 package com.e6.bot.config;
 
+import org.apache.commons.configuration.HierarchicalConfiguration;
 import org.apache.commons.configuration.XMLConfiguration;
-
 import java.util.List;
 
 public class Configuration {
@@ -57,14 +57,19 @@ public class Configuration {
             afkChannelId = config.getInt("afkChannelId");
             virtualServerId = config.getInt("virtualServerId");
             botNickname = config.getString("botNickname");
+
             afkTimeToMove = convertToMil(config.getLong("afkTimeToMove"));
             botCheckDelay = convertToMil(config.getLong("botCheckDelay"));
 
-            List<String> safeGroupList = config.getList("safeGroups");
+            @SuppressWarnings("unchecked")
+            List<HierarchicalConfiguration> safeGroupList = config.configurationsAt("safeGroups.groupId");
+
             safeGroups = new int[safeGroupList.size()];
 
-            for (int i = 0; i < safeGroupList.size(); i++) {
-                safeGroups[i] = Integer.parseInt(safeGroupList.get(i));
+            int i = 0;
+            for (HierarchicalConfiguration groupId : safeGroupList) {
+                safeGroups[i] = Integer.parseInt(groupId.getRoot().getValue().toString());
+                i++;
             }
 
         }
@@ -72,11 +77,10 @@ public class Configuration {
             System.out.println("Failed to load configuration!");
         }
 
-
     }
-    //convert to milliseconds
+
+    // Convert to milliseconds
     private long convertToMil(long minutes){
         return minutes * 60 * 1000;
-
     }
 }

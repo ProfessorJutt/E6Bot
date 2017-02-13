@@ -60,21 +60,39 @@ class BotCore implements Runnable {
 
     @Override
     public void run() {
+
+        int[] safeGroups = appConfig.getSafeGroups();
+
         while (running) {
             try {
                 for (Client c : api.getClients()) {
+
+                    boolean isProtected = false;
+                    int[] groups = c.getServerGroups();
+
+                    // Checking if the user is safe from moves.
+                    for (int clientGroupId : groups) {
+                        // Looping through the safe groups and kicking out of the loop if there is a match.
+                        for (int safeGroup : safeGroups) if (clientGroupId == safeGroup) isProtected = true;
+                        if (isProtected) break;
+                    }
+
+                    // Kicking out of this client's loop iteration if they are in a protected group.
+                    if (isProtected) continue;
+
+                    // Checking against idle time and then moving the user if the appropriate time has been met.
                     if (c.getIdleTime() >= appConfig.getAfkTimeToMove()) {
                         if (c.getChannelId() != appConfig.getAfkChannelId()) {
                             System.out.println(c.getNickname() + " has been AFK to long and is being moved...");
                             api.moveClient(c.getId(), appConfig.getAfkChannelId());
                         }
                     }
-                    //int[] groups = c.getServerGroups();
                 }
                 try {
                     Thread.sleep(appConfig.getBotCheckDelay());
                 } catch (InterruptedException ex) {
                     // This is an expected exception since we interrupt the thread when it is sleeping to exit the app.
+                    System.out.println("The user closed the application via the exit command.");
                 }
             }
             catch (NullPointerException ex) {

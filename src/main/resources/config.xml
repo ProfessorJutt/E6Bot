@@ -1,12 +1,18 @@
 <?xml version="1.0" encoding="ISO-8859-1" ?>
 <configuration>
     <serverAddress>127.0.0.1</serverAddress>
-    <botNickname>AFKRekt</botNickname>
+    <virtualServerId>1</virtualServerId>
+    <botNickname>AFKicker</botNickname>
     <username>TestAdmin</username>
     <password>USbS3jbC</password>
-    <afkTimeToMove>3000</afkTimeToMove>
-    <safeGroups>1,2,3,4</safeGroups>
-    <virtualServerId>1</virtualServerId>
-    <botCheckDelay>10000</botCheckDelay>
+
     <afkChannelId>8</afkChannelId>
+    <afkTimeToMove>1</afkTimeToMove>
+    <botCheckDelay>1</botCheckDelay>
+    <safeGroups>
+        <groupId>1</groupId>
+        <groupId>2</groupId>
+        <groupId>3</groupId>
+        <groupId>5</groupId>
+    </safeGroups>
 </configuration>
