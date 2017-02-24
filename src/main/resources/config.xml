@@ -4,8 +4,7 @@
     <virtualServerId>1</virtualServerId>
     <botNickname>AFKicker</botNickname>
     <username>TestAdmin</username>
-    <password>USbS3jbC</password>
-
+    <password>Nfk2TuAK</password>
     <afkChannelId>8</afkChannelId>
     <afkTimeToMove>1</afkTimeToMove>
     <botCheckDelay>1</botCheckDelay>
@@ -15,4 +14,5 @@
         <groupId>3</groupId>
         <groupId>5</groupId>
     </safeGroups>
+    <userJoinMessage>Sup, I am a dank bot that listens to you when you whisper me. Type !help for more info.</userJoinMessage>
 </configuration>
