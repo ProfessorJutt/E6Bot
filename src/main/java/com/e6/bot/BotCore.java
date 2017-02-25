@@ -10,10 +10,11 @@ import com.github.theholywaffle.teamspeak3.api.event.*;
 import com.github.theholywaffle.teamspeak3.api.reconnect.ConnectionHandler;
 import com.github.theholywaffle.teamspeak3.api.reconnect.ReconnectStrategy;
 import com.github.theholywaffle.teamspeak3.api.wrapper.Client;
-import com.github.theholywaffle.teamspeak3.api.wrapper.ClientInfo;
 import com.github.theholywaffle.teamspeak3.api.wrapper.ServerQueryInfo;
 
-import java.util.Date;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 import java.util.logging.Level;
 
 class BotCore implements Runnable {
@@ -24,10 +25,18 @@ class BotCore implements Runnable {
     private boolean running = true;
     private static Configuration appConfig;
     private static CommandLoader customCommands;
-    private ServerQueryInfo clientInfo;
+    private static Random random = new Random();
+
+    private int botClientId;
+    private int botCurrentChannel;
+
+    private List<Client> clientList;
+    private long lastMoveTimestamp;
+    private long lastEnterTimestamp;
+    private long lastLeaveTimestamp;
+    private long lastClientRefresh;
 
     BotCore () {
-
         // Configuration file that allows users to edit the bot's behavior.
         appConfig = new Configuration();
         customCommands = new CommandLoader();
@@ -37,16 +46,13 @@ class BotCore implements Runnable {
         config.setHost(appConfig.getServerAddress());
         config.setDebugLevel(Level.ALL);
 
-        // Reconnect timer gets longer and longer.
-        config.setReconnectStrategy(ReconnectStrategy.exponentialBackoff());
-
         // Reconnection logic
+        config.setReconnectStrategy(ReconnectStrategy.exponentialBackoff());
         config.setConnectionHandler(new ConnectionHandler() {
             @Override
             public void onConnect(TS3Query ts3Query) {
                 loginLogic(ts3Query.getApi());
             }
-
             @Override
             public void onDisconnect(TS3Query ts3Query) {
                 // Nada
@@ -57,15 +63,15 @@ class BotCore implements Runnable {
         query = new TS3Query(config);
         query.connect();
 
-        int databaseID = clientInfo.getDatabaseId();
-        api.addClientPermission(databaseID, "i_client_needed_private_textmessage_power", 50, true);
+        // Permission to send messages.
+        api.addClientPermission(api.whoAmI().getDatabaseId(), "i_client_needed_private_textmessage_power", 50, true);
 
         api.addTS3Listeners(new TS3Listener() {
             @Override
             public void onTextMessage(TextMessageEvent textMessageEvent) {
                 TextMessageTargetMode targetMode = textMessageEvent.getTargetMode();
                 if (textMessageEvent.getMessage().startsWith("!")) {
-                    if (targetMode.getIndex() == 1 && textMessageEvent.getInvokerId() != clientInfo.getId()) {
+                    if (targetMode.getIndex() == 1 && textMessageEvent.getInvokerId() != botClientId) {
                         handleMessages(textMessageEvent);
                     }
                 }
@@ -73,18 +79,25 @@ class BotCore implements Runnable {
             @Override
             public void onClientJoin(ClientJoinEvent clientJoinEvent) {
                 api.sendPrivateMessage(clientJoinEvent.getClientId(), appConfig.getUserJoinMessage());
+                lastEnterTimestamp = System.currentTimeMillis();
             }
             @Override
-            public void onClientLeave(ClientLeaveEvent clientLeaveEvent) {}
+            public void onClientLeave(ClientLeaveEvent clientLeaveEvent) {
+                lastLeaveTimestamp = System.currentTimeMillis();
+            }
+            @Override
+            public void onClientMoved(ClientMovedEvent clientMovedEvent) {
+                if (clientMovedEvent.getClientId() == botClientId) {
+                    botCurrentChannel = clientMovedEvent.getTargetChannelId();
+                }
+                lastMoveTimestamp = System.currentTimeMillis();
+            }
             @Override
             public void onServerEdit(ServerEditedEvent serverEditedEvent) {}
             @Override
             public void onChannelEdit(ChannelEditedEvent channelEditedEvent) {}
             @Override
             public void onChannelDescriptionChanged(ChannelDescriptionEditedEvent channelDescriptionEditedEvent) { }
-            @Override
-            public void onClientMoved(ClientMovedEvent clientMovedEvent) {
-            }
             @Override
             public void onChannelCreate(ChannelCreateEvent channelCreateEvent) { }
             @Override
@@ -106,44 +119,10 @@ class BotCore implements Runnable {
         api.selectVirtualServerById(appConfig.getVirtualServerId());
         api.setNickname(appConfig.getBotNickname());
         api.registerAllEvents();
-        clientInfo = api.whoAmI();
-    }
 
-    private void handleMessages(TextMessageEvent event) {
-
-        String message = event.getMessage().toLowerCase();
-        ClientInfo userInformation = api.getClientInfo(event.getInvokerId());
-
-        switch (message) {
-            case "!roll":
-                int roll = (int)(Math.random()*100);
-                if (roll == 100) {
-                    sendChannelMessage("Holy hot damn! " + userInformation.getNickname() + " rolled a " + roll, userInformation.getChannelId());
-                }
-                else if (roll == 0) {
-                    sendChannelMessage(userInformation.getNickname() + " rolled a " + roll + "... I think you should win out of pity for being so bad at rolling.", userInformation.getChannelId());
-                }
-                else if (roll > 90) {
-                    sendChannelMessage("Nice! " + userInformation.getNickname() + " rolled a " + roll, userInformation.getChannelId());
-                }
-                else if (roll < 10) {
-                    sendChannelMessage("Ouch... " + userInformation.getNickname() + " rolled a " + roll, userInformation.getChannelId());
-                }
-                else {
-                    sendChannelMessage(userInformation.getNickname() + " rolled a " + roll, userInformation.getChannelId());
-                }
-                break;
-            default:
-                api.sendPrivateMessage(event.getInvokerId(), customCommands.getCommandText(message));
-                break;
-        }
-    }
-
-    private void sendChannelMessage(String message, int channelId) {
-        if (api.whoAmI().getChannelId() != channelId) {
-            api.sendChannelMessage(channelId, message);
-        }
-        else api.sendChannelMessage(message);
+        ServerQueryInfo info = api.whoAmI();
+        botClientId = info.getId();
+        botCurrentChannel = info.getChannelId();
     }
 
     @Override
@@ -153,7 +132,11 @@ class BotCore implements Runnable {
 
         while (running) {
             try {
-                for (Client c : api.getClients()) {
+
+                clientList = api.getClients();
+                lastClientRefresh = System.currentTimeMillis();
+
+                for (Client c : clientList) {
 
                     boolean isProtected = false;
                     int[] groups = c.getServerGroups();
@@ -166,7 +149,7 @@ class BotCore implements Runnable {
                     }
 
                     // Is it the bot you're trying to move?
-                    if (c.getId() == clientInfo.getId()) isProtected = true;
+                    if (c.getId() == botClientId) isProtected = true;
 
                     // Kicking out of this client's loop iteration if they are in a protected group.
                     if (isProtected) continue;
@@ -193,6 +176,77 @@ class BotCore implements Runnable {
         }
     }
 
+    // When a valid message gets passed in this method handles it.
+    private void handleMessages(TextMessageEvent event) {
+
+        String message = event.getMessage().toLowerCase();
+        Client sender = null;
+
+        if (message.equals("!roll") || message.equals("!raffle")) {
+            if (lastMoveTimestamp > lastClientRefresh || lastEnterTimestamp > lastClientRefresh || lastLeaveTimestamp > lastClientRefresh) {
+                clientList = api.getClients();
+                lastClientRefresh = System.currentTimeMillis();
+            }
+
+            for (Client c : clientList) {
+                if (event.getInvokerId() == c.getId()) {
+                    sender = c;
+                    break;
+                }
+            }
+
+            if (sender == null) {
+                sender = api.getClientInfo(event.getInvokerId());
+            }
+
+            if (message.equals("!roll")) {
+                int roll = (int)(Math.random()*100);
+                if (roll == 100) {
+                    sendChannelMessage("Holy hot damn! " + sender.getNickname() + " rolled a " + roll, sender.getChannelId());
+                }
+                else if (roll == 0) {
+                    sendChannelMessage(sender.getNickname() + " rolled a " + roll + "... I think you should win out of pity for being so bad at rolling.", sender.getChannelId());
+                }
+                else if (roll > 90) {
+                    sendChannelMessage("Nice! " + sender.getNickname() + " rolled a " + roll, sender.getChannelId());
+                }
+                else if (roll < 10) {
+                    sendChannelMessage("Ouch... " + sender.getNickname() + " rolled a " + roll, sender.getChannelId());
+                }
+                else {
+                    sendChannelMessage(sender.getNickname() + " rolled a " + roll, sender.getChannelId());
+                }
+            }
+            else if (message.equals("!raffle")) {
+
+                List<Client> raffleEntries = new ArrayList<>();
+
+                for (Client c : clientList) if (c.getChannelId() == sender.getChannelId()) raffleEntries.add(c);
+
+                if (raffleEntries.size() == 0) {
+                    sendChannelMessage("The winner is " + sender.getNickname() + "! Congrats!", sender.getChannelId());
+                }
+                else {
+                    Client winner = raffleEntries.get(random.nextInt(raffleEntries.size()));
+                    sendChannelMessage("The winner of the raffle is " + winner.getNickname() + "! Congrats!", sender.getChannelId());
+                }
+            }
+
+        }
+        else {
+            // Help
+            if (message.equals("!help")) api.sendPrivateMessage(event.getInvokerId(), "Available Commands: !roll, !raffle" + customCommands.getAvailableCommands());
+            // Custom Commands loading
+            else api.sendPrivateMessage(event.getInvokerId(), customCommands.getCommandText(message));
+        }
+    }
+
+    // This completes the check for channel messages to make sure the bot is inside the channel it's sending messages to.
+    private void sendChannelMessage(String message, int channelId) {
+        if (botCurrentChannel != channelId) api.sendChannelMessage(channelId, message);
+        else api.sendChannelMessage(message);
+    }
+
     // External calls use the start method to create a thread of this class. The static thread name will stop the app from spawning multiple bots somehow.
     void start () {
         if (thread == null) {
@@ -207,4 +261,5 @@ class BotCore implements Runnable {
         thread.interrupt();
         query.exit();
     }
+
 }

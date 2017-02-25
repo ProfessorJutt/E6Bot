@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.io.FilenameUtils;
 
-public class CommandLoader {
+public final class CommandLoader {
 
     private String root = this.getClass().getProtectionDomain().getCodeSource().getLocation().getPath();
     private final File commandsDirectory = new File(root + "/CustomCommands");
@@ -56,5 +56,15 @@ public class CommandLoader {
             if (customCommand.getCommand().equals(command)) return customCommand.getOutput();
         }
         return "I did not recognise that command. Type !help for a list of available commands.";
+    }
+
+    public String getAvailableCommands() {
+        String commands = "";
+
+        for (CustomCommand customCommand : customCommandList) {
+            commands += ", " + customCommand.getCommand();
+        }
+
+        return commands;
     }
 }
