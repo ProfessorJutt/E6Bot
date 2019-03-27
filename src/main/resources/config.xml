@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="ISO-8859-1" ?>
 <configuration>
     <serverAddress>127.0.0.1</serverAddress>
-    <botNickname>AFKRekt</botNickname>
-    <username>TestAdmin</username>
-    <password>USbS3jbC</password>
+    <botNickname>SWIGGITYSWOOTY</botNickname>
+    <username>testadmin</username>
+    <password>z4Qp2CRk</password>
     <afkTimeToMove>3000</afkTimeToMove>
     <safeGroups>1,2,3,4</safeGroups>
+    <raffleGroupBlacklist>6</raffleGroupBlacklist>
     <virtualServerId>1</virtualServerId>
     <botCheckDelay>10000</botCheckDelay>
     <afkChannelId>8</afkChannelId>
+    <userJoinMessage>Welcome!</userJoinMessage>
 </configuration>

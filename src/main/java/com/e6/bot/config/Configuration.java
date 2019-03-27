@@ -9,14 +9,19 @@ public class Configuration {
 
     private String serverAddress = "127.0.0.1";
     private String botNickname = "SwagMonster";
-    private String username = "TestAdmin";
-    private String password = "USbS3jbC";
+    private String username = "serveradmin";
+    private String password = "Y22sR4oS";
+    private String userJoinMessage = "Welcome!";
     private int virtualServerId = 1;
     private int afkChannelId = 8;
     private long afkTimeToMove = 30000;
     private long botCheckDelay = 10000;
     private int[] safeGroups;
+    private int[] raffleGroupBlacklist;
 
+    public int[] getRaffleGroupBlacklist() {
+        return raffleGroupBlacklist;
+    }
     public int getVirtualServerId() {
         return virtualServerId;
     }
@@ -35,6 +40,9 @@ public class Configuration {
     public String getPassword() {
         return password;
     }
+    public String getUserJoinMessage() {
+        return userJoinMessage;
+    }
     public long getAfkTimeToMove() {
         return afkTimeToMove;
     }
@@ -45,27 +53,28 @@ public class Configuration {
         return safeGroups;
     }
 
+    @SuppressWarnings("unchecked")
     public Configuration() {
 
         try {
 
             XMLConfiguration config = new XMLConfiguration("config.xml");
 
-            serverAddress = config.getString("serverAddress");
-            username = config.getString("username");
-            password = config.getString("password");
-            afkChannelId = config.getInt("afkChannelId");
-            virtualServerId = config.getInt("virtualServerId");
-            botNickname = config.getString("botNickname");
-            afkTimeToMove = convertToMil(config.getLong("afkTimeToMove"));
-            botCheckDelay = convertToMil(config.getLong("botCheckDelay"));
+            this.serverAddress = config.getString("serverAddress");
+            this.username = config.getString("username");
+            this.password = config.getString("password");
+            this.afkChannelId = config.getInt("afkChannelId");
+            this.virtualServerId = config.getInt("virtualServerId");
+            this.botNickname = config.getString("botNickname");
+            this.afkTimeToMove = convertToMil(config.getLong("afkTimeToMove"));
+            this.botCheckDelay = convertToMil(config.getLong("botCheckDelay"));
+            this.userJoinMessage = config.getString("userJoinMessage");
 
-            List<String> safeGroupList = config.getList("safeGroups");
-            safeGroups = new int[safeGroupList.size()];
+            List raffleBlacklist = config.getList("raffleGroupBlacklist");
+            this.raffleGroupBlacklist = raffleBlacklist.stream().mapToInt(i -> Integer.parseInt((String) i)).toArray();
 
-            for (int i = 0; i < safeGroupList.size(); i++) {
-                safeGroups[i] = Integer.parseInt(safeGroupList.get(i));
-            }
+            List safeGroupList = config.getList("safeGroups");
+            this.safeGroups = safeGroupList.stream().mapToInt(i -> Integer.parseInt((String) i)).toArray();
 
         }
         catch (Exception ex) {
